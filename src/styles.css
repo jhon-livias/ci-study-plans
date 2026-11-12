@@ -1,0 +1,17 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';
+@import 'tailwindcss';
+
+:root {
+  color-scheme: light;
+  --color-brand: #8a1c24;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, "Segoe UI", sans-serif;
+  background: #f7f4f4;
+  color: #1e1e1e;
+}
+
+button, input, select { font: inherit; }

@@ -1,0 +1,146 @@
+<main class="mx-auto max-w-6xl px-4 py-6">
+  @if (notice()) { <p class="mb-4 rounded-xl bg-[#f8e8ea] px-4 py-3 text-sm text-[#8a1c24]" role="status">{{ notice() }}</p> }
+  @if (!auth.faculty() && !(auth.user()?.applicationRoles ?? []).includes('study-plans.teacher')) {
+    <p class="rounded-xl bg-white p-6">Tu cuenta no tiene acceso a planes de estudio. Pide a identidad que te asigne facultad o docente y al menos una carrera.</p>
+  } @else if (catalog().careers.length === 0) {
+    <p class="rounded-xl bg-white p-6">No tienes carreras asignadas. Sin esa asignación no se muestra ningún plan.</p>
+  } @else {
+    <section class="grid gap-3 rounded-2xl bg-white p-4 sm:grid-cols-3" aria-label="Filtros">
+      <label class="text-sm font-semibold">Modalidad
+        <select class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" [value]="modalityId()" (change)="chooseModality($event)">
+          @for (item of catalog().modalities; track item.id) { <option [value]="item.id">{{ item.name }}</option> }
+        </select>
+      </label>
+      <label class="text-sm font-semibold">Área académica
+        <select class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" [value]="areaId()" (change)="chooseArea($event)">
+          @for (item of catalog().areas; track item.id) { <option [value]="item.id">{{ item.name }}</option> }
+        </select>
+      </label>
+      <label class="text-sm font-semibold">Carrera
+        <select class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" [value]="careerId()" (change)="chooseCareer($event)">
+          @for (item of careers(); track item.id) { <option [value]="item.id">{{ item.name }}</option> }
+        </select>
+      </label>
+    </section>
+
+    @if (!mesh()) {
+      <section class="mt-6" aria-labelledby="plans-title">
+        <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <h1 id="plans-title" class="text-xl font-semibold">{{ auth.faculty() ? 'Planes de estudio' : 'Plan vigente' }}</h1>
+          @if (auth.faculty()) {
+            <form class="flex gap-2" (submit)="$event.preventDefault(); createPlan()">
+              <label class="text-sm font-semibold" for="year">Vigencia
+                <input id="year" class="ml-2 h-10 w-24 rounded-xl border border-[#ead7d8] px-3" inputmode="numeric" maxlength="4" [value]="year()" (input)="year.set(text($event))" />
+              </label>
+              <button class="h-10 rounded-full bg-[#8a1c24] px-4 text-sm font-semibold text-white disabled:opacity-60" [disabled]="busy()" type="submit">Nuevo plan</button>
+            </form>
+          }
+        </div>
+        <div class="overflow-x-auto rounded-2xl bg-white">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-[#8a1c24] text-white"><tr><th class="px-4 py-3">Vigencia</th><th class="px-4 py-3">Estado</th><th class="px-4 py-3">Acciones</th></tr></thead>
+            <tbody>
+              @for (plan of plans(); track plan.id) {
+                <tr class="border-t border-[#ead7d8]">
+                  <td class="px-4 py-3 font-semibold">{{ plan.year }}</td>
+                  <td class="px-4 py-3">{{ plan.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}</td>
+                  <td class="px-4 py-3">
+                    <button class="font-semibold text-[#8a1c24]" type="button" (click)="openPlan(plan.id)">Ver cursos</button>
+                    @if (auth.faculty()) {
+                      <button class="ml-3 font-semibold" type="button" (click)="setStatus(plan, plan.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')">{{ plan.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</button>
+                    }
+                  </td>
+                </tr>
+              } @empty { <tr><td class="px-4 py-6 text-[#7c8691]" colspan="3">No hay planes para este filtro.</td></tr> }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    } @else {
+      <section class="mt-6" aria-labelledby="mesh-title">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <button class="text-sm font-semibold text-[#8a1c24]" type="button" (click)="mesh.set(null)">Volver a los planes</button>
+            <h1 id="mesh-title" class="text-xl font-semibold">{{ mesh()?.career?.name }} · {{ mesh()?.year }}</h1>
+            <p class="text-sm text-[#7c8691]">{{ mesh()?.modality?.name }} · {{ mesh()?.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}</p>
+          </div>
+          @if (auth.faculty()) {
+            <form class="flex gap-2" (submit)="$event.preventDefault(); addCycle()">
+              <label class="text-sm font-semibold" for="cycle">Ciclo
+                <input id="cycle" class="ml-2 h-10 w-16 rounded-xl border border-[#ead7d8] px-3" inputmode="numeric" [value]="cycleNumber()" (input)="cycleNumber.set(text($event))" />
+              </label>
+              <button class="h-10 rounded-full bg-[#8a1c24] px-4 text-sm font-semibold text-white" type="submit">Agregar ciclo</button>
+            </form>
+          }
+        </div>
+        @for (cycle of mesh()?.cycles ?? []; track cycle.id) {
+          <article class="mb-4 overflow-x-auto rounded-2xl bg-white">
+            <div class="flex items-center justify-between bg-[#f8e8ea] px-4 py-3">
+              <h2 class="font-semibold">Ciclo {{ cycle.number }}</h2>
+              @if (auth.faculty()) {
+                <div class="flex gap-3 text-sm">
+                  <button class="font-semibold text-[#8a1c24]" type="button" (click)="editCourse(cycle.id)">Agregar curso</button>
+                  <button type="button" (click)="removeCycle(cycle)">Quitar ciclo</button>
+                </div>
+              }
+            </div>
+            <table class="w-full text-left text-sm">
+              <thead><tr class="text-[#7c8691]"><th class="px-4 py-2">Ord</th><th class="px-4 py-2">Código</th><th class="px-4 py-2">Curso</th><th class="px-4 py-2">Créd.</th><th class="px-4 py-2">Estado</th><th class="px-4 py-2">Acciones</th></tr></thead>
+              <tbody>
+                @for (course of cycle.courses; track course.id) {
+                  <tr class="border-t border-[#ead7d8]">
+                    <td class="px-4 py-2">{{ course.position }}</td>
+                    <td class="px-4 py-2 font-semibold">{{ course.code }}</td>
+                    <td class="px-4 py-2">{{ course.name }}</td>
+                    <td class="px-4 py-2">{{ course.credits }}</td>
+                    <td class="px-4 py-2">{{ course.syllabus === 'PUBLISHED' ? 'Subido' : 'Pendiente' }}</td>
+                    <td class="px-4 py-2">
+                      @if (course.syllabus === 'PUBLISHED') {
+                        <button class="font-semibold text-[#8a1c24]" type="button" (click)="viewSyllabus(course)">Ver sílabo</button>
+                        <button class="ml-3" type="button" (click)="download(course)">Descargar</button>
+                      }
+                      @if (auth.faculty()) {
+                        <label class="ml-3 cursor-pointer font-semibold">{{ course.syllabus === 'PUBLISHED' ? 'Reemplazar' : 'Subir PDF' }}
+                          <input class="sr-only" type="file" accept="application/pdf" (change)="upload(course, $event)" />
+                        </label>
+                        @if (course.syllabus === 'PUBLISHED') { <button class="ml-3" type="button" (click)="removeSyllabus(course)">Quitar PDF</button> }
+                        <button class="ml-3" type="button" (click)="editCourse(cycle.id, course)">Editar</button>
+                        <button class="ml-3" type="button" (click)="removeCourse(course)">Eliminar</button>
+                      }
+                    </td>
+                  </tr>
+                } @empty { <tr><td class="px-4 py-4 text-[#7c8691]" colspan="6">Este ciclo no tiene cursos.</td></tr> }
+              </tbody>
+            </table>
+          </article>
+        } @empty { <p class="rounded-2xl bg-white p-6 text-sm text-[#7c8691]">Este plan todavía no tiene ciclos.</p> }
+      </section>
+    }
+  }
+
+  @if (courseOpen()) {
+    <div class="fixed inset-0 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="course-title">
+      <form class="w-full max-w-lg rounded-2xl bg-white p-6" (submit)="$event.preventDefault(); saveCourse()">
+        <h2 id="course-title" class="text-lg font-semibold">{{ course().id ? 'Editar curso' : 'Nuevo curso' }}</h2>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <label class="text-sm font-semibold">Orden <input class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" [value]="course().position" (input)="course.update((c) => ({ ...c, position: text($event) }))" /></label>
+          <label class="text-sm font-semibold">Código <input class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" maxlength="5" [value]="course().code" (input)="course.update((c) => ({ ...c, code: text($event).toUpperCase() }))" /></label>
+          <label class="text-sm font-semibold sm:col-span-2">Curso <input class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" [value]="course().name" (input)="course.update((c) => ({ ...c, name: text($event) }))" /></label>
+          <label class="text-sm font-semibold">Créditos <input class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" inputmode="decimal" [value]="course().credits" (input)="course.update((c) => ({ ...c, credits: text($event) }))" /></label>
+        </div>
+        <div class="mt-5 flex gap-3">
+          <button class="h-10 rounded-full bg-[#8a1c24] px-4 font-semibold text-white" type="submit">Guardar</button>
+          <button class="h-10 rounded-full border border-[#ead7d8] px-4" type="button" (click)="courseOpen.set(false)">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <section class="mt-6" [hidden]="!pdfTitle()" aria-labelledby="pdf-title">
+    <div class="mb-2 flex items-center justify-between">
+      <h2 id="pdf-title" class="font-semibold">{{ pdfTitle() }}</h2>
+      <button class="text-sm font-semibold text-[#8a1c24]" type="button" (click)="closeViewer()">Cerrar visor</button>
+    </div>
+    <div #viewer></div>
+  </section>
+</main>

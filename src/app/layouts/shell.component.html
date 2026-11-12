@@ -1,0 +1,15 @@
+<div class="min-h-dvh">
+  <header class="bg-[#8a1c24] text-white">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+      <div>
+        <p class="text-xs uppercase tracking-wide text-white/80">Universidad Privada de Trujillo</p>
+        <p class="text-lg font-semibold">{{ auth.faculty() ? 'Gestión de sílabos y planes' : 'Repositorio de sílabos' }}</p>
+      </div>
+      <div class="flex items-center gap-3 text-sm">
+        <span>{{ auth.user()?.displayName || auth.user()?.username }}</span>
+        <button class="rounded-full border border-white/40 px-3 py-1" type="button" (click)="logout()">Salir</button>
+      </div>
+    </div>
+  </header>
+  <router-outlet />
+</div>
