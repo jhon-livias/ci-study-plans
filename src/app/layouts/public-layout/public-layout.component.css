@@ -1,7 +1,7 @@
 .shell {
   display: grid;
   min-height: 100dvh;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
 }
 
 .container {
@@ -10,28 +10,24 @@
 }
 
 .header {
-  background: var(--color-brand-primary);
-  color: white;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
-.bar {
+.header .container,
+.footer .container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   min-height: 4.5rem;
 }
 
-.session {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
+.main {
+  outline: none;
 }
 
-.main {
-  padding-block: 1.5rem 2.5rem;
-  outline: none;
+.footer {
+  color: var(--color-text-muted);
+  background: var(--color-surface);
 }
 
 .skip-link {
