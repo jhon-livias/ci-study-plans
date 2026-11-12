@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormField, FormRoot, form, minLength, required } from '@angular/forms/signals';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { StudyPlansAuthService } from '../../core/auth/study-plans-auth.service';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
@@ -18,6 +18,7 @@ export class LoginPage {
   private readonly auth = inject(StudyPlansAuthService);
   private readonly recaptcha = inject(RecaptchaService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly credentials = signal({ username: '', password: '' });
   readonly loginForm = form(this.credentials, (path) => {
     required(path.username, { message: 'Ingresa tu usuario.' });
@@ -25,11 +26,11 @@ export class LoginPage {
     minLength(path.password, 8, { message: 'La contraseña debe tener al menos 8 caracteres.' });
   });
   readonly totpCode = signal('');
-  readonly needsCode = signal(false);
+  readonly needsCode = signal(this.route.snapshot.queryParamMap.get('google') === 'totp');
   readonly enrollment = signal<{ token: string; secret: string; qr: string } | null>(null);
   readonly enrollCode = signal('');
   readonly submitting = signal(false);
-  readonly notice = signal<{ readonly text: string; readonly tone: AlertTone } | null>(null);
+  readonly notice = signal<{ readonly text: string; readonly tone: AlertTone } | null>(googleNotice(this.route.snapshot.queryParamMap.get('google')));
 
   async submit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
@@ -65,4 +66,17 @@ export class LoginPage {
       this.notice.set({ text: error instanceof Error ? error.message : 'No se pudo activar la autenticación.', tone: 'error' });
     } finally { this.submitting.set(false); }
   }
+
+  continueWithGoogle(): void {
+    window.location.assign('/api/v1/auth/google?application=study-plans');
+  }
 }
+
+const googleNotice = (value: string | null): { readonly text: string; readonly tone: AlertTone } | null => {
+  if (value === 'totp') return { text: 'Esta cuenta usa autenticación de dos pasos. Ingresa con tu contraseña y el código de la aplicación.', tone: 'warning' };
+  if (value === 'enroll') return { text: 'Debes activar la autenticación de dos pasos. Ingresa con tu usuario y contraseña.', tone: 'warning' };
+  if (value === 'denied' || value === 'failed' || value === 'unknown' || value === 'unverified' || value === 'unconfigured') {
+    return { text: 'No se pudo continuar con Google.', tone: 'error' };
+  }
+  return null;
+};

@@ -12,14 +12,20 @@
       </form>
     } @else {
       <form class="space-y-4" [formRoot]="loginForm" (submit)="submit($event)">
-        <ui-field [formField]="loginForm.username" autocomplete="username" id="username" label="Usuario" placeholder="Ingresa tu usuario" />
+        <ui-field [formField]="loginForm.username" autocomplete="username" id="username" label="Usuario" placeholder="Ingresa tu usuario o correo" />
         <ui-field [formField]="loginForm.password" autocomplete="current-password" id="password" label="Contraseña" placeholder="Ingresa tu contraseña" [showPasswordToggle]="true" type="password" />
         @if (needsCode()) {
           <ui-field id="totp-code" label="Código de autenticación" autocomplete="one-time-code" placeholder="6 dígitos de la aplicación" [value]="totpCode()" (valueChange)="totpCode.set($event)" />
         }
         @if (notice(); as message) { <ui-alert [tone]="message.tone">{{ message.text }}</ui-alert> }
-        <ui-button [disabled]="submitting()" [fullWidth]="true" [pill]="true" type="submit">{{ submitting() ? 'Ingresando…' : 'Iniciar sesión' }}</ui-button>
+        <ui-button class="mt-2" [disabled]="submitting()" [fullWidth]="true" [pill]="true" type="submit">{{ submitting() ? 'Ingresando…' : 'Iniciar sesión' }}</ui-button>
       </form>
+    }
+    @if (!enrollment()) {
+      <p class="mt-5 text-center text-xs text-[#7c8691]">Este sitio está protegido por reCAPTCHA de Google.</p>
+      <div class="my-5 flex items-center gap-4 text-sm text-[#7c8691]" aria-hidden="true"><span class="h-px flex-1 bg-[#dfd6d6]"></span><span>o</span><span class="h-px flex-1 bg-[#dfd6d6]"></span></div>
+      <ui-button [fullWidth]="true" [pill]="true" variant="soft" type="button" (click)="continueWithGoogle()">Continuar con Google</ui-button>
+      <div class="mt-6 text-center text-sm"><span class="font-semibold text-[#8a1c24]">¿Olvidaste tu contraseña?</span></div>
     }
   </section>
 </app-auth-layout>
