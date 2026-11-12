@@ -16,15 +16,10 @@
 
   @if (!mesh()) {
     <ui-page-header [items]="crumbs()" [title]="auth.faculty() ? 'Planes de estudio' : 'Plan vigente'">
-      @if (auth.faculty()) {
-        <form class="flex items-end gap-2" (submit)="$event.preventDefault(); createPlan()">
-          <ui-field id="year" label="Vigencia" [value]="year()" (valueChange)="year.set($event)" />
-          <ui-button [disabled]="busy()" [pill]="true" type="submit">Nuevo plan</ui-button>
-        </form>
-      }
+      <ui-select id="year" label="Vigencia" [options]="yearOptions()" [value]="year()" [disabled]="yearOptions().length === 0" placeholder="Sin vigencias" (valueChange)="year.set($event)" />
     </ui-page-header>
     <div class="mt-4 grid gap-3">
-      @for (plan of plans(); track plan.id) {
+      @for (plan of visiblePlans(); track plan.id) {
         <ui-card [heading]="plan.year">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <ui-badge [tone]="plan.status === 'ACTIVE' ? 'primary' : 'neutral'">{{ plan.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}</ui-badge>

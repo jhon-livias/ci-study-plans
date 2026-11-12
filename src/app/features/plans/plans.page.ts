@@ -14,7 +14,8 @@ import { UiSelectComponent, type UiSelectOption } from '../../shared/ui/select/u
 
 interface Named { readonly id: string; readonly code: string; readonly name: string; }
 interface Career extends Named { readonly areaId: string; }
-interface Catalog { readonly modalities: readonly Named[]; readonly areas: readonly Named[]; readonly careers: readonly Career[]; }
+interface Offering { readonly modalityId: string; readonly careerId: string; }
+interface Catalog { readonly modalities: readonly Named[]; readonly areas: readonly Named[]; readonly careers: readonly Career[]; readonly offerings: readonly Offering[]; }
 interface PlanRow { readonly id: string; readonly year: string; readonly status: 'ACTIVE' | 'INACTIVE'; }
 interface CourseRow {
   readonly id: string; readonly position: number; readonly code: string; readonly name: string; readonly credits: number; readonly syllabus: 'PUBLISHED' | 'PENDING';
@@ -35,7 +36,7 @@ export class PlansPage {
   private readonly api = inject(PlansApi);
   readonly auth = inject(StudyPlansAuthService);
   private readonly viewer = viewChild<ElementRef<HTMLElement>>('viewer');
-  readonly catalog = signal<Catalog>({ modalities: [], areas: [], careers: [] });
+  readonly catalog = signal<Catalog>({ modalities: [], areas: [], careers: [], offerings: [] });
   readonly modalityId = signal('');
   readonly areaId = signal('');
   readonly careerId = signal('');
@@ -43,15 +44,22 @@ export class PlansPage {
   readonly mesh = signal<Mesh | null>(null);
   readonly notice = signal('');
   readonly busy = signal(false);
-  readonly year = signal(String(new Date().getFullYear()));
+  readonly year = signal('');
   readonly cycleNumber = signal('1');
   readonly course = signal({ id: '', cycleId: '', position: '1', code: '', name: '', credits: '3' });
   readonly courseOpen = signal(false);
   readonly pdfTitle = signal('');
   readonly pendingConfirm = signal<PendingConfirm | null>(null);
   readonly modalityOptions = computed((): readonly UiSelectOption[] => this.catalog().modalities.map((item) => ({ value: item.id, label: item.name })));
-  readonly areaOptions = computed((): readonly UiSelectOption[] => this.catalog().areas.map((item) => ({ value: item.id, label: item.name })));
+  readonly areaOptions = computed((): readonly UiSelectOption[] => {
+    const areaIds = new Set(this.careersForModality().map((career) => career.areaId));
+    return this.catalog().areas.filter((area) => areaIds.has(area.id)).map((item) => ({ value: item.id, label: item.name }));
+  });
   readonly careerOptions = computed((): readonly UiSelectOption[] => this.careers().map((item) => ({ value: item.id, label: item.name })));
+  readonly yearOptions = computed((): readonly UiSelectOption[] => [...this.plans()]
+    .sort((left, right) => right.year.localeCompare(left.year))
+    .map((plan) => ({ value: plan.year, label: plan.year })));
+  readonly visiblePlans = computed(() => this.plans().filter((plan) => plan.year === this.year()));
   readonly crumbs = computed((): readonly UiBreadcrumbItem[] => this.mesh()
     ? [{ label: 'Planes', action: 'plans' }, { label: this.mesh()?.year ?? '' }]
     : [{ label: 'Planes de estudio' }]);
@@ -61,20 +69,32 @@ export class PlansPage {
       const catalog = await this.api.get<Catalog>('/catalog');
       this.catalog.set(catalog);
       this.modalityId.set(catalog.modalities[0]?.id ?? '');
-      this.areaId.set(catalog.areas[0]?.id ?? '');
-      this.careerId.set(this.careers()[0]?.id ?? '');
+      this.keepValidSelection();
       if (this.careerId()) await this.loadPlans();
     } catch (error) {
       this.notice.set(error instanceof Error ? error.message : 'No se pudo abrir el catálogo.');
     }
   }
 
+  careersForModality(): readonly Career[] {
+    const ids = new Set(this.catalog().offerings.filter((item) => item.modalityId === this.modalityId()).map((item) => item.careerId));
+    return this.catalog().careers.filter((career) => ids.has(career.id));
+  }
+
   careers(): readonly Career[] {
-    return this.catalog().careers.filter((career) => career.areaId === this.areaId());
+    return this.careersForModality().filter((career) => career.areaId === this.areaId());
+  }
+
+  private keepValidSelection(): void {
+    const areas = this.areaOptions();
+    if (!areas.some((area) => area.value === this.areaId())) this.areaId.set(areas[0]?.value ?? '');
+    const careers = this.careers();
+    if (!careers.some((career) => career.id === this.careerId())) this.careerId.set(careers[0]?.id ?? '');
   }
 
   async chooseModality(value: string): Promise<void> {
     this.modalityId.set(value);
+    this.keepValidSelection();
     this.mesh.set(null);
     await this.loadPlans();
   }
@@ -97,21 +117,15 @@ export class PlansPage {
   }
 
   async loadPlans(): Promise<void> {
-    if (!this.careerId() || !this.modalityId()) { this.plans.set([]); return; }
-    this.plans.set(await this.api.get<PlanRow[]>(`/curricula?careerId=${this.careerId()}&modalityId=${this.modalityId()}`));
+    if (!this.careerId() || !this.modalityId()) { this.plans.set([]); this.year.set(''); return; }
+    const rows = await this.api.get<PlanRow[]>(`/curricula?careerId=${this.careerId()}&modalityId=${this.modalityId()}`);
+    this.plans.set(rows);
+    const years = rows.map((plan) => plan.year);
+    if (!years.includes(this.year())) this.year.set([...years].sort().at(-1) ?? '');
   }
 
   async openPlan(id: string): Promise<void> {
     this.mesh.set(await this.api.get<Mesh>(`/curricula/${id}`));
-  }
-
-  async createPlan(): Promise<void> {
-    if (!/^20\d{2}$/.test(this.year().trim())) { this.notice.set('La vigencia debe ser un año, por ejemplo 2024.'); return; }
-    await this.run(async () => {
-      await this.api.send('POST', '/curricula', { careerId: this.careerId(), modalityId: this.modalityId(), year: this.year().trim() });
-      await this.loadPlans();
-      this.notice.set('Plan creado. Actívalo cuando la malla esté lista.');
-    });
   }
 
   async setStatus(plan: PlanRow, status: 'ACTIVE' | 'INACTIVE'): Promise<void> {
