@@ -1,0 +1,26 @@
+<nav class="text-xs text-[#7c8691]" aria-label="Miga de pan">
+  @for (item of items(); track $index; let last = $last) {
+    @if (item.href) {
+      <a class="hover:underline" [routerLink]="item.href">{{ item.label }}</a>
+    } @else if (item.action) {
+      <button class="hover:underline" type="button" (click)="activate.emit(item.action!)">{{ item.label }}</button>
+    } @else {
+      <span>{{ item.label }}</span>
+    }
+    @if (!last) {
+      <span aria-hidden="true"> / </span>
+    }
+  }
+</nav>
+<div class="mt-5 flex flex-wrap items-center justify-between gap-4">
+  <div class="min-w-0">
+    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <h1 class="font-[var(--font-heading)] text-2xl font-semibold text-[#a9002d]">{{ title() }}</h1>
+      <ng-content select="[data-page-aside]" />
+    </div>
+    @if (description()) {
+      <p class="mt-2 text-sm text-[#7c8691]">{{ description() }}</p>
+    }
+  </div>
+  <ng-content />
+</div>

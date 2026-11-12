@@ -1,0 +1,24 @@
+<main class="relative grid min-h-dvh place-items-center overflow-hidden bg-[#5e5254] px-4 py-8 font-[var(--font-geist)] sm:px-8">
+  <img ngSrc="/assets/auth/login/background-administrativo.png" width="1600" height="1000" priority alt="" class="absolute inset-0 h-full w-full object-cover" />
+  <div class="absolute inset-0 bg-[#5e5254]/70" aria-hidden="true"></div>
+  <section class="relative grid w-full max-w-[916px] overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgb(0_0_0_/_24%)] lg:grid-cols-2" aria-label="Planes de estudio UPRIT">
+    <aside class="relative hidden min-h-[775px] overflow-hidden bg-white lg:block" aria-label="Bienvenida">
+      <img ngSrc="/assets/auth/login/panel-graphic.svg" width="460" height="775" priority alt="" class="absolute inset-0 h-full w-full" />
+      <img ngSrc="/assets/auth/login/illustration.png" width="4000" height="3000" alt="Comunidad universitaria UPRIT" class="absolute left-[-4%] top-[27%] h-[50%] w-full object-fill object-[49%_56%] contrast-125" />
+      <div class="relative h-full p-9 text-white">
+        <p class="w-fit rounded-full bg-white px-5 py-1.5 text-xl font-black leading-none text-[#8a1c24]">Bienvenido</p>
+        <p class="absolute bottom-16 left-1/2 w-[16rem] -translate-x-1/2 text-center text-[1.8rem] font-normal leading-[1.15] text-[#d5b8bf]">“Formación para toda la vida”</p>
+      </div>
+    </aside>
+    <div class="flex min-h-[42rem] items-center px-6 py-12 sm:px-12 lg:min-h-[775px] lg:px-[42px]">
+      <div class="mx-auto w-full max-w-[390px]">
+        <header class="text-center" aria-label="Planes de estudio UPRIT">
+          <img ngSrc="/assets/auth/login/logo-login.svg" width="54" height="54" priority alt="" class="mx-auto mb-2 size-[54px]" />
+          <p class="text-[1.65rem] font-black leading-[0.9] tracking-[-0.055em] text-[#8a1c24]">Planes de<br />estudio</p>
+          <p class="mt-2 text-sm font-medium leading-none text-[#5e5254]">Sílabos y mallas curriculares</p>
+        </header>
+        <div class="mt-9"><ng-content /></div>
+      </div>
+    </div>
+  </section>
+</main>

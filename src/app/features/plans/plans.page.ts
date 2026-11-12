@@ -1,7 +1,16 @@
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 
 import { PlansApi } from '../../core/api/plans-api';
 import { StudyPlansAuthService } from '../../core/auth/study-plans-auth.service';
+import { UiAlertComponent } from '../../shared/ui/alert/ui-alert.component';
+import { UiBadgeComponent } from '../../shared/ui/badge/ui-badge.component';
+import { UiButtonComponent } from '../../shared/ui/button/ui-button.component';
+import { UiCardComponent } from '../../shared/ui/card/ui-card.component';
+import { UiConfirmComponent } from '../../shared/ui/confirm/ui-confirm.component';
+import { UiFieldComponent } from '../../shared/ui/field/ui-field.component';
+import { UiFilterBarComponent } from '../../shared/ui/filter-bar/ui-filter-bar.component';
+import { UiPageHeaderComponent, type UiBreadcrumbItem } from '../../shared/ui/page-header/ui-page-header.component';
+import { UiSelectComponent, type UiSelectOption } from '../../shared/ui/select/ui-select.component';
 
 interface Named { readonly id: string; readonly code: string; readonly name: string; }
 interface Career extends Named { readonly areaId: string; }
@@ -15,8 +24,13 @@ interface Mesh {
   readonly id: string; readonly year: string; readonly status: 'ACTIVE' | 'INACTIVE';
   readonly career: Named; readonly modality: Named; readonly cycles: readonly CycleRow[];
 }
+interface PendingConfirm { readonly title: string; readonly message: string; readonly run: () => Promise<void>; }
 
-@Component({ selector: 'app-plans', imports: [], templateUrl: './plans.page.html' })
+@Component({
+  selector: 'app-plans',
+  imports: [UiAlertComponent, UiBadgeComponent, UiButtonComponent, UiCardComponent, UiConfirmComponent, UiFieldComponent, UiFilterBarComponent, UiPageHeaderComponent, UiSelectComponent],
+  templateUrl: './plans.page.html',
+})
 export class PlansPage {
   private readonly api = inject(PlansApi);
   readonly auth = inject(StudyPlansAuthService);
@@ -34,6 +48,13 @@ export class PlansPage {
   readonly course = signal({ id: '', cycleId: '', position: '1', code: '', name: '', credits: '3' });
   readonly courseOpen = signal(false);
   readonly pdfTitle = signal('');
+  readonly pendingConfirm = signal<PendingConfirm | null>(null);
+  readonly modalityOptions = computed((): readonly UiSelectOption[] => this.catalog().modalities.map((item) => ({ value: item.id, label: item.name })));
+  readonly areaOptions = computed((): readonly UiSelectOption[] => this.catalog().areas.map((item) => ({ value: item.id, label: item.name })));
+  readonly careerOptions = computed((): readonly UiSelectOption[] => this.careers().map((item) => ({ value: item.id, label: item.name })));
+  readonly crumbs = computed((): readonly UiBreadcrumbItem[] => this.mesh()
+    ? [{ label: 'Planes', action: 'plans' }, { label: this.mesh()?.year ?? '' }]
+    : [{ label: 'Planes de estudio' }]);
 
   async ngOnInit(): Promise<void> {
     try {
@@ -52,28 +73,27 @@ export class PlansPage {
     return this.catalog().careers.filter((career) => career.areaId === this.areaId());
   }
 
-  text(event: Event): string {
-    const target = event.target;
-    return target instanceof HTMLInputElement || target instanceof HTMLSelectElement ? target.value : '';
-  }
-
-  async chooseModality(event: Event): Promise<void> {
-    this.modalityId.set(this.text(event));
+  async chooseModality(value: string): Promise<void> {
+    this.modalityId.set(value);
     this.mesh.set(null);
     await this.loadPlans();
   }
 
-  async chooseArea(event: Event): Promise<void> {
-    this.areaId.set(this.text(event));
+  async chooseArea(value: string): Promise<void> {
+    this.areaId.set(value);
     this.careerId.set(this.careers()[0]?.id ?? '');
     this.mesh.set(null);
     await this.loadPlans();
   }
 
-  async chooseCareer(event: Event): Promise<void> {
-    this.careerId.set(this.text(event));
+  async chooseCareer(value: string): Promise<void> {
+    this.careerId.set(value);
     this.mesh.set(null);
     await this.loadPlans();
+  }
+
+  onCrumb(action: string): void {
+    if (action === 'plans') this.mesh.set(null);
   }
 
   async loadPlans(): Promise<void> {
@@ -112,12 +132,16 @@ export class PlansPage {
     });
   }
 
-  async removeCycle(cycle: CycleRow): Promise<void> {
+  askRemoveCycle(cycle: CycleRow): void {
     const mesh = this.mesh();
-    if (!mesh || !confirm(`¿Eliminar el ciclo ${cycle.number}?`)) return;
-    await this.run(async () => {
-      await this.api.send('DELETE', `/cycles/${cycle.id}`);
-      await this.openPlan(mesh.id);
+    if (!mesh) return;
+    this.pendingConfirm.set({
+      title: 'Quitar ciclo',
+      message: `¿Eliminar el ciclo ${cycle.number}?`,
+      run: async () => {
+        await this.api.send('DELETE', `/cycles/${cycle.id}`);
+        await this.openPlan(mesh.id);
+      },
     });
   }
 
@@ -126,6 +150,11 @@ export class PlansPage {
       ? { id: current.id, cycleId, position: String(current.position), code: current.code, name: current.name, credits: String(current.credits) }
       : { id: '', cycleId, position: '1', code: '', name: '', credits: '3' });
     this.courseOpen.set(true);
+  }
+
+  patchCourse(key: 'position' | 'code' | 'name' | 'credits', value: string): void {
+    const next = key === 'code' ? value.toUpperCase() : value;
+    this.course.update((current) => ({ ...current, [key]: next }));
   }
 
   async saveCourse(): Promise<void> {
@@ -145,12 +174,16 @@ export class PlansPage {
     });
   }
 
-  async removeCourse(course: CourseRow): Promise<void> {
+  askRemoveCourse(course: CourseRow): void {
     const mesh = this.mesh();
-    if (!mesh || !confirm(`¿Eliminar ${course.code}?`)) return;
-    await this.run(async () => {
-      await this.api.send('DELETE', `/courses/${course.id}`);
-      await this.openPlan(mesh.id);
+    if (!mesh) return;
+    this.pendingConfirm.set({
+      title: 'Eliminar curso',
+      message: `¿Eliminar ${course.code}?`,
+      run: async () => {
+        await this.api.send('DELETE', `/courses/${course.id}`);
+        await this.openPlan(mesh.id);
+      },
     });
   }
 
@@ -169,13 +202,24 @@ export class PlansPage {
     });
   }
 
-  async removeSyllabus(course: CourseRow): Promise<void> {
+  askRemoveSyllabus(course: CourseRow): void {
     const mesh = this.mesh();
-    if (!mesh || !confirm('¿Retirar el sílabo publicado?')) return;
-    await this.run(async () => {
-      await this.api.send('DELETE', `/courses/${course.id}/syllabus`);
-      await this.openPlan(mesh.id);
+    if (!mesh) return;
+    this.pendingConfirm.set({
+      title: 'Retirar sílabo',
+      message: '¿Retirar el sílabo publicado?',
+      run: async () => {
+        await this.api.send('DELETE', `/courses/${course.id}/syllabus`);
+        await this.openPlan(mesh.id);
+      },
     });
+  }
+
+  async acceptConfirm(): Promise<void> {
+    const current = this.pendingConfirm();
+    this.pendingConfirm.set(null);
+    if (!current) return;
+    await this.run(current.run);
   }
 
   async viewSyllabus(course: CourseRow): Promise<void> {

@@ -1,0 +1,42 @@
+<div class="field">
+  <label class="field__label" [for]="id()">
+    {{ label() }}
+    @if (required()) {
+      <span aria-hidden="true">*</span>
+    }
+  </label>
+  <div class="field__control-wrap">
+    <input
+      class="field__control"
+      [class.field__control--invalid]="!!message()"
+      [class.field__control--with-toggle]="showPasswordToggle() && type() === 'password'"
+      [attr.aria-describedby]="hint() || message() ? id() + '-description' : null"
+      [attr.aria-invalid]="message() ? 'true' : null"
+      [autocomplete]="autocomplete()"
+      [disabled]="disabled()"
+      [id]="id()"
+      [placeholder]="placeholder()"
+      [required]="required()"
+      [type]="inputType()"
+      [value]="value()"
+      (input)="onValueChange($event)"
+      (blur)="onBlur()"
+    />
+    @if (showPasswordToggle() && type() === 'password') {
+      <button
+        class="field__toggle"
+        type="button"
+        [attr.aria-label]="passwordVisible() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+        [attr.aria-pressed]="passwordVisible()"
+        (click)="togglePasswordVisibility()"
+      >
+        {{ passwordVisible() ? 'Ocultar' : 'Mostrar' }}
+      </button>
+    }
+  </div>
+  @if (message()) {
+    <p [id]="id() + '-description'" class="field__message field__message--error" role="alert">{{ message() }}</p>
+  } @else if (hint()) {
+    <p [id]="id() + '-description'" class="field__message">{{ hint() }}</p>
+  }
+</div>

@@ -1,0 +1,16 @@
+:host {
+  display: block;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-brand-primary);
+}

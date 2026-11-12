@@ -8,7 +8,11 @@ export const studyPlansAuthGuard: CanActivateFn = async () => {
   const router = inject(Router);
   if (auth.user()) return true;
   try {
-    if (await auth.restore()) return true;
+    const restored = await Promise.race([
+      auth.restore(),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 4000)),
+    ]);
+    if (restored) return true;
   } catch {
     return router.createUrlTree(['/login']);
   }

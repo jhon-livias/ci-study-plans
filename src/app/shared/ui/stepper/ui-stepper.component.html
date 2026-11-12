@@ -1,0 +1,18 @@
+<ol class="stepper" aria-label="Pasos">
+  @for (step of steps(); track step.label; let index = $index; let last = $last) {
+    <li class="stepper__item">
+      <button
+        class="stepper__step"
+        type="button"
+        [attr.aria-current]="index === active() ? 'step' : null"
+        (click)="select(index)"
+      >
+        <span class="stepper__marker" [class.stepper__marker--active]="index === active()"></span>
+        <span class="stepper__label" [class.stepper__label--active]="index === active()">{{ step.label }}</span>
+      </button>
+      @if (!last) {
+        <span class="stepper__line" aria-hidden="true"></span>
+      }
+    </li>
+  }
+</ol>

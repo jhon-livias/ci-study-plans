@@ -1,0 +1,76 @@
+:host {
+  display: block;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.field__label {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field__control {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  color: var(--color-text);
+  font: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.field__control-wrap {
+  position: relative;
+}
+
+.field__control--with-toggle {
+  padding-right: 5.5rem;
+}
+
+.field__control--invalid {
+  border-color: var(--color-brand-primary);
+}
+
+.field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  padding: 0.375rem;
+  color: var(--color-brand-primary);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.field__toggle:hover {
+  background: var(--color-background-light-gray);
+}
+
+.field__control:hover:not(:disabled) {
+  border-color: var(--color-brand-light);
+}
+
+.field__control:disabled {
+  cursor: not-allowed;
+  color: var(--color-text-muted);
+  background: var(--color-background-light-gray);
+}
+
+.field__message {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.field__message--error {
+  color: var(--color-brand-primary);
+}

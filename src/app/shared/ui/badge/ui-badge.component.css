@@ -1,0 +1,17 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding-inline: 0.625rem;
+  color: var(--color-brand-gray);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--color-background-dark-gray);
+}
+
+.badge--primary {
+  color: var(--color-brand-primary);
+  background: color-mix(in srgb, var(--color-brand-light) 55%, white);
+}

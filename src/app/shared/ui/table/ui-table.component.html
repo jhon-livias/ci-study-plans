@@ -1,0 +1,91 @@
+<section class="table-card" aria-label="Tabla de resultados">
+  <div class="table-card__scroll">
+    <table class="table-card__table">
+      <thead>
+        <tr>
+          @for (column of columns(); track column.key) {
+            <th
+              [attr.aria-sort]="ariaSort(column)"
+              [class.table-card__cell--center]="column.align === 'center'"
+              [class.table-card__cell--end]="column.align === 'end'"
+              scope="col"
+            >
+              @if (column.sortable) {
+                <button class="table-card__sort" type="button" (click)="sortColumn(column)">
+                  {{ column.label }}
+                  <span aria-hidden="true" class="table-card__sort-icon" [class.table-card__sort-icon--descending]="ariaSort(column) === 'descending'"></span>
+                  <span class="table-card__sr-only">Ordenar por {{ column.label }}</span>
+                </button>
+              } @else {
+                {{ column.label }}
+              }
+            </th>
+          }
+          @if (actions()) { <th class="table-card__cell--center" scope="col">Acciones</th> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of visibleRows(); track $index) {
+          <tr>
+            @for (column of columns(); track column.key) {
+              <td
+                [class.table-card__cell--center]="column.align === 'center'"
+                [class.table-card__cell--end]="column.align === 'end'"
+              >
+                @if (column.kind === 'switch') {
+                  <button
+                    class="table-card__switch"
+                    type="button"
+                    role="switch"
+                    [attr.aria-checked]="row[column.key] === true"
+                    [attr.aria-label]="'Estado de ' + rowLabel(row)"
+                    (click)="toggle.emit(row)"
+                  >
+                    <span [class.table-card__switch-knob--on]="row[column.key] === true"></span>
+                  </button>
+                } @else {
+                  {{ row[column.key] ?? '—' }}
+                }
+              </td>
+            }
+            @if (actions()) {
+              <td>
+                <div class="table-card__actions">
+                  @if (allowReset()) {
+                    <ui-icon-button icon="key" [label]="'Restablecer clave de ' + rowLabel(row)" (click)="reset.emit(row)" />
+                  }
+                  <ui-icon-button icon="edit" [label]="'Editar ' + rowLabel(row)" (click)="edit.emit(row)" />
+                  <ui-icon-button icon="trash" tone="danger" [label]="'Eliminar ' + rowLabel(row)" (click)="remove.emit(row)" />
+                </div>
+              </td>
+            }
+          </tr>
+        } @empty {
+          <tr>
+            <td class="table-card__empty" [attr.colspan]="columns().length + (actions() ? 1 : 0)">{{ emptyMessage() }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="table-card__footer">
+    <label class="table-card__page-size">
+      <span>Elementos por página:</span>
+      <select [value]="activePageSize()" (change)="changePageSize($event)" aria-label="Elementos por página">
+        @for (size of pageSizeOptions(); track size) {
+          <option [value]="size">{{ size }}</option>
+        }
+      </select>
+    </label>
+    <p class="table-card__range">{{ rangeStart() }}-{{ rangeEnd() }} de {{ total() }}</p>
+    <div class="table-card__pagination" aria-label="Paginación">
+      <button type="button" aria-label="Página anterior" (click)="changePage(currentPage() - 1)" [disabled]="currentPage() === 0">
+        <ui-icon name="chevron-left" />
+      </button>
+      <button type="button" aria-label="Página siguiente" (click)="changePage(currentPage() + 1)" [disabled]="currentPage() >= pageCount() - 1">
+        <ui-icon name="chevron-right" />
+      </button>
+    </div>
+  </footer>
+</section>

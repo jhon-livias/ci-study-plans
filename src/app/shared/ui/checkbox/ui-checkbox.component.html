@@ -1,0 +1,4 @@
+<label class="check" [for]="id()">
+  <input [id]="id()" type="checkbox" [checked]="checked()" (change)="onChange($event)" />
+  <span>{{ label() }}</span>
+</label>

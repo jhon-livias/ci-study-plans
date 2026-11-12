@@ -65,7 +65,7 @@ export class StudyPlansAuthService {
       this.user.set(current.user);
       return true;
     }
-    const refreshed = await fetch(`${authBaseUrl}/refresh`, { method: 'POST', credentials: 'include' });
+    const refreshed = await fetch(`${authBaseUrl}/refresh`, { method: 'POST', credentials: 'include', signal: AbortSignal.timeout(4000) });
     if (!refreshed.ok || refreshed.status === 204) return false;
     const session = toSession(await refreshed.json() as unknown);
     this.csrfToken = session.csrfToken;
@@ -87,7 +87,7 @@ export class StudyPlansAuthService {
   }
 
   private async session(): Promise<{ readonly csrfToken: string; readonly user: StudyPlansUser } | null> {
-    const response = await fetch(`${authBaseUrl}/session`, { credentials: 'include' });
+    const response = await fetch(`${authBaseUrl}/session`, { credentials: 'include', signal: AbortSignal.timeout(4000) });
     if (!response.ok || response.status === 204) return null;
     return toSession(await response.json() as unknown);
   }

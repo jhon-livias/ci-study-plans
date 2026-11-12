@@ -2,16 +2,81 @@
 @import '@fontsource/inter/600.css';
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/assets/fonts/geist-sans-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/assets/fonts/geist-sans-semibold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/assets/fonts/geist-sans-black.woff2') format('woff2');
+}
+
 :root {
   color-scheme: light;
   --color-brand: #8a1c24;
+  --color-brand-primary: #8a1c24;
+  --color-brand-light: #d5b8bf;
+  --color-brand-gray: #5e5254;
+  --color-black: #1e1e1e;
+  --color-white: #ffffff;
+  --color-gray: #7c8691;
+  --color-background-dark-gray: #dfd6d6;
+  --color-background-light-gray: #faf6f7;
+  --color-brand-600: var(--color-brand-primary);
+  --color-brand-700: var(--color-brand-primary);
+  --color-surface: var(--color-white);
+  --color-surface-muted: var(--color-background-light-gray);
+  --color-text: var(--color-black);
+  --color-text-muted: var(--color-gray);
+  --color-border: var(--color-background-dark-gray);
+  --color-focus: var(--color-brand-primary);
+  --shadow-brand: 0 2px 10px rgb(213 184 191 / 80%);
+  --shadow-neutral: 0 2px 8px rgb(0 0 0 / 10%);
+  --shadow-card: var(--shadow-neutral);
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-body);
+  --font-geist: 'Geist', var(--font-body);
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
+  min-width: 20rem;
+  min-height: 100dvh;
   margin: 0;
-  font-family: Inter, "Segoe UI", sans-serif;
-  background: #f7f4f4;
-  color: #1e1e1e;
 }
 
-button, input, select { font: inherit; }
+button,
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}

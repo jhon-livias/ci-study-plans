@@ -4,10 +4,14 @@ import { Router } from '@angular/router';
 
 import { StudyPlansAuthService } from '../../core/auth/study-plans-auth.service';
 import { RecaptchaService } from '../../core/security/recaptcha.service';
+import { AuthLayoutComponent } from '../../layouts/auth-layout/auth-layout.component';
+import { UiAlertComponent, type AlertTone } from '../../shared/ui/alert/ui-alert.component';
+import { UiButtonComponent } from '../../shared/ui/button/ui-button.component';
+import { UiFieldComponent } from '../../shared/ui/field/ui-field.component';
 
 @Component({
   selector: 'app-login',
-  imports: [FormField, FormRoot],
+  imports: [FormField, FormRoot, AuthLayoutComponent, UiAlertComponent, UiButtonComponent, UiFieldComponent],
   templateUrl: './login.page.html',
 })
 export class LoginPage {
@@ -25,19 +29,14 @@ export class LoginPage {
   readonly enrollment = signal<{ token: string; secret: string; qr: string } | null>(null);
   readonly enrollCode = signal('');
   readonly submitting = signal(false);
-  readonly notice = signal('');
-
-  text(event: Event): string {
-    const target = event.target;
-    return target instanceof HTMLInputElement ? target.value : '';
-  }
+  readonly notice = signal<{ readonly text: string; readonly tone: AlertTone } | null>(null);
 
   async submit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     this.loginForm().markAsTouched();
-    if (this.loginForm().invalid()) { this.notice.set('Revisa los datos marcados.'); return; }
+    if (this.loginForm().invalid()) { this.notice.set({ text: 'Revisa los datos marcados.', tone: 'warning' }); return; }
     this.submitting.set(true);
-    this.notice.set('');
+    this.notice.set(null);
     try {
       const token = await this.auth.login(this.credentials().username.trim(), this.credentials().password, await this.recaptcha.executeLogin(), this.totpCode().trim() || undefined);
       if (token) {
@@ -49,20 +48,21 @@ export class LoginPage {
     } catch (error) {
       const text = error instanceof Error ? error.message : 'No pudimos iniciar sesión.';
       if (text.toLowerCase().includes('código')) this.needsCode.set(true);
-      this.notice.set(text);
+      this.notice.set({ text, tone: 'error' });
     } finally { this.submitting.set(false); }
   }
 
   async confirmEnrollment(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     const current = this.enrollment();
-    if (!current || !/^\d{6}$/.test(this.enrollCode().trim())) { this.notice.set('Ingresa el código de 6 dígitos.'); return; }
+    if (!current || !/^\d{6}$/.test(this.enrollCode().trim())) { this.notice.set({ text: 'Ingresa el código de 6 dígitos.', tone: 'warning' }); return; }
     this.submitting.set(true);
+    this.notice.set(null);
     try {
       await this.auth.finishEnrollment(current.token, this.enrollCode().trim());
       await this.router.navigateByUrl('/');
     } catch (error) {
-      this.notice.set(error instanceof Error ? error.message : 'No se pudo activar la autenticación.');
+      this.notice.set({ text: error instanceof Error ? error.message : 'No se pudo activar la autenticación.', tone: 'error' });
     } finally { this.submitting.set(false); }
   }
 }

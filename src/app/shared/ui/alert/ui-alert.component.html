@@ -1,0 +1,10 @@
+<div
+  class="alert"
+  [class.alert--info]="tone() === 'info'"
+  [class.alert--success]="tone() === 'success'"
+  [class.alert--warning]="tone() === 'warning'"
+  [class.alert--error]="tone() === 'error'"
+  [attr.role]="tone() === 'error' || tone() === 'warning' ? 'alert' : 'status'"
+>
+  <ng-content />
+</div>

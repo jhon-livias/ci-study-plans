@@ -1,34 +1,25 @@
-<main class="grid min-h-dvh place-items-center px-4">
-  <section class="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm" aria-labelledby="login-title">
-    <p class="text-sm font-semibold text-[#8a1c24]">UPRIT</p>
-    <h1 id="login-title" class="mt-1 text-2xl font-semibold">Planes de estudio</h1>
+<app-auth-layout>
+  <section aria-labelledby="login-title">
+    <h1 id="login-title" class="sr-only">Iniciar sesión</h1>
     @if (enrollment(); as enroll) {
-      <form class="mt-6 space-y-4" (submit)="confirmEnrollment($event)">
-        <p class="text-sm">Activa el segundo paso en Google Authenticator o Microsoft Authenticator.</p>
+      <form class="space-y-4" (submit)="confirmEnrollment($event)">
+        <p class="text-sm text-[#1e1e1e]">Antes de entrar, activa la autenticación en Google Authenticator o Microsoft Authenticator.</p>
         <img class="mx-auto size-52" [src]="enroll.qr" alt="Código para activar la autenticación de dos pasos" />
-        <p class="break-all text-center font-mono text-sm font-semibold">{{ enroll.secret }}</p>
-        <label class="block text-sm font-semibold" for="enroll-code">Código de la aplicación
-          <input id="enroll-code" class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [value]="enrollCode()" (input)="enrollCode.set(text($event))" />
-        </label>
-        @if (notice()) { <p class="text-sm text-[#8a1c24]" role="alert">{{ notice() }}</p> }
-        <button class="h-11 w-full rounded-full bg-[#8a1c24] font-semibold text-white disabled:opacity-60" [disabled]="submitting()" type="submit">{{ submitting() ? 'Activando…' : 'Activar y entrar' }}</button>
+        <p class="break-all text-center font-mono text-sm font-semibold text-[#8a1c24]">{{ enroll.secret }}</p>
+        <ui-field id="enroll-code" label="Código de la aplicación" type="text" autocomplete="one-time-code" placeholder="6 dígitos de la aplicación" [value]="enrollCode()" (valueChange)="enrollCode.set($event)" />
+        @if (notice(); as message) { <ui-alert [tone]="message.tone">{{ message.text }}</ui-alert> }
+        <ui-button [disabled]="submitting()" [fullWidth]="true" [pill]="true" type="submit">{{ submitting() ? 'Activando…' : 'Activar y entrar' }}</ui-button>
       </form>
     } @else {
-      <form class="mt-6 space-y-4" [formRoot]="loginForm" (submit)="submit($event)">
-        <label class="block text-sm font-semibold" for="username">Usuario
-          <input id="username" class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" autocomplete="username" [formField]="loginForm.username" />
-        </label>
-        <label class="block text-sm font-semibold" for="password">Contraseña
-          <input id="password" class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" type="password" autocomplete="current-password" [formField]="loginForm.password" />
-        </label>
+      <form class="space-y-4" [formRoot]="loginForm" (submit)="submit($event)">
+        <ui-field [formField]="loginForm.username" autocomplete="username" id="username" label="Usuario" placeholder="Ingresa tu usuario" />
+        <ui-field [formField]="loginForm.password" autocomplete="current-password" id="password" label="Contraseña" placeholder="Ingresa tu contraseña" [showPasswordToggle]="true" type="password" />
         @if (needsCode()) {
-          <label class="block text-sm font-semibold" for="totp-code">Código de autenticación
-            <input id="totp-code" class="mt-1 h-11 w-full rounded-xl border border-[#ead7d8] px-3" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [value]="totpCode()" (input)="totpCode.set(text($event))" />
-          </label>
+          <ui-field id="totp-code" label="Código de autenticación" autocomplete="one-time-code" placeholder="6 dígitos de la aplicación" [value]="totpCode()" (valueChange)="totpCode.set($event)" />
         }
-        @if (notice()) { <p class="text-sm text-[#8a1c24]" role="alert">{{ notice() }}</p> }
-        <button class="h-11 w-full rounded-full bg-[#8a1c24] font-semibold text-white disabled:opacity-60" [disabled]="submitting()" type="submit">{{ submitting() ? 'Ingresando…' : 'Iniciar sesión' }}</button>
+        @if (notice(); as message) { <ui-alert [tone]="message.tone">{{ message.text }}</ui-alert> }
+        <ui-button [disabled]="submitting()" [fullWidth]="true" [pill]="true" type="submit">{{ submitting() ? 'Ingresando…' : 'Iniciar sesión' }}</ui-button>
       </form>
     }
   </section>
-</main>
+</app-auth-layout>

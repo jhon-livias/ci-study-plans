@@ -1,0 +1,45 @@
+<div class="select" (focusout)="onFocusOut($event)">
+  <label class="select__label" [for]="id() + '-control'">
+    {{ label() }}
+    @if (required()) {
+      <span aria-hidden="true">*</span>
+    }
+  </label>
+  <button
+    class="select__control"
+    type="button"
+    [disabled]="disabled()"
+    [class.select__control--invalid]="!!error()"
+    [attr.aria-invalid]="error() ? 'true' : null"
+    [attr.aria-describedby]="error() ? id() + '-error' : null"
+    [id]="id() + '-control'"
+    role="combobox"
+    [attr.aria-controls]="id() + '-options'"
+    [attr.aria-expanded]="open()"
+    [attr.aria-haspopup]="'listbox'"
+    (click)="toggle()"
+    (keydown)="onKeydown($event)"
+  >
+    <span [class.select__placeholder]="!value()">{{ selectedLabel() }}</span>
+    <ui-icon class="select__chevron" name="chevron-down" />
+  </button>
+  @if (error()) {
+    <p class="select__message" [id]="id() + '-error'" role="alert">{{ error() }}</p>
+  }
+  @if (open()) {
+    <div class="select__menu" (keydown)="onKeydown($event)">
+      @if (searchable()) {
+        <input #searchInput class="select__search" type="search" autocomplete="off" [attr.aria-label]="'Buscar ' + label()" placeholder="Buscar…" [value]="query()" (input)="onSearch($event)" />
+      }
+      <ul [id]="id() + '-options'" class="select__options" role="listbox" [attr.aria-label]="label()">
+        @for (option of filteredOptions(); track option.value; let index = $index) {
+          <li>
+            <button type="button" role="option" class="select__option" [class.select__option--active]="index === activeIndex()" [class.select__option--selected]="option.value === value()" [disabled]="option.disabled ?? false" [attr.aria-selected]="option.value === value()" (click)="select(option)">{{ option.label }}</button>
+          </li>
+        } @empty {
+          <li class="select__empty" role="status">No se encontraron resultados.</li>
+        }
+      </ul>
+    </div>
+  }
+</div>

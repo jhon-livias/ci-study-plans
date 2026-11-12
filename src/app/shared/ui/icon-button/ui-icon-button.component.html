@@ -1,0 +1,15 @@
+<button
+  class="icon-button"
+  [class.icon-button--danger]="tone() === 'danger'"
+  [attr.aria-label]="label()"
+  [type]="type()"
+  (mouseenter)="show($event)"
+  (mouseleave)="hide()"
+  (focus)="show($event)"
+  (blur)="hide()"
+>
+  <ui-icon [name]="icon()" />
+</button>
+@if (open()) {
+  <span class="icon-button__tip" role="tooltip" [style.top.px]="top()" [style.left.px]="left()">{{ label() }}</span>
+}

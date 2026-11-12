@@ -1,15 +1,17 @@
-<div class="min-h-dvh">
-  <header class="bg-[#8a1c24] text-white">
-    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-      <div>
-        <p class="text-xs uppercase tracking-wide text-white/80">Universidad Privada de Trujillo</p>
-        <p class="text-lg font-semibold">{{ auth.faculty() ? 'Gestión de sílabos y planes' : 'Repositorio de sílabos' }}</p>
-      </div>
-      <div class="flex items-center gap-3 text-sm">
+<div class="shell">
+  <a class="skip-link" href="#main-content">Ir al contenido principal</a>
+  <header class="header">
+    <div class="container bar">
+      <ui-brand />
+      <div class="session">
         <span>{{ auth.user()?.displayName || auth.user()?.username }}</span>
-        <button class="rounded-full border border-white/40 px-3 py-1" type="button" (click)="logout()">Salir</button>
+        <ui-button variant="soft" (click)="logout()">Salir</ui-button>
       </div>
     </div>
   </header>
-  <router-outlet />
+  <main id="main-content" class="main" tabindex="-1">
+    <div class="container">
+      <router-outlet />
+    </div>
+  </main>
 </div>

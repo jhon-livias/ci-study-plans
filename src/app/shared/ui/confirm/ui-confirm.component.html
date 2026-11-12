@@ -1,0 +1,18 @@
+<div class="confirm__frame" (click)="keepOpen($event)">
+  <span class="confirm__mark" aria-hidden="true">?</span>
+  <section class="confirm__card">
+    <h2 class="confirm__title" id="ui-confirm-title">{{ title() }}</h2>
+    <p class="confirm__message">{{ message() }}</p>
+    @if (details().length > 0) {
+      <ul class="confirm__details">
+        @for (item of details(); track item.label) {
+          <li><strong>{{ item.label }}:</strong> {{ item.value }}</li>
+        }
+      </ul>
+    }
+    <div class="confirm__actions">
+      <button class="confirm__cancel" type="button" (click)="cancelled.emit()">{{ cancelLabel() }}</button>
+      <button class="confirm__accept" type="button" (click)="confirmed.emit()">{{ confirmLabel() }}</button>
+    </div>
+  </section>
+</div>
