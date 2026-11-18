@@ -39,7 +39,7 @@
     <ui-page-header [items]="crumbs()" [title]="(mesh()?.career?.name ?? '') + ' · ' + (mesh()?.year ?? '')" [description]="(mesh()?.modality?.name ?? '') + ' · ' + (mesh()?.status === 'ACTIVE' ? 'Activo' : 'Inactivo')" (activate)="onCrumb($event)">
       @if (auth.faculty()) {
         <form class="flex items-end gap-2" (submit)="$event.preventDefault(); addCycle()">
-          <ui-field id="cycle" label="Ciclo" [value]="cycleNumber()" (valueChange)="cycleNumber.set($event)" />
+          <ui-field id="cycle" label="Ciclo" [required]="true" [error]="cycleFieldError()" [value]="cycleNumber()" (valueChange)="cycleNumber.set($event); cycleFieldError.set('')" />
           <ui-button [pill]="true" type="submit">Agregar ciclo</ui-button>
         </form>
       }
@@ -65,16 +65,16 @@
                   <ui-button variant="secondary" (click)="download(course)">Descargar</ui-button>
                 }
                 @if (auth.faculty()) {
-                  <label class="relative inline-flex">
-                    <ui-button variant="soft" type="button">{{ course.syllabus === 'PUBLISHED' ? 'Reemplazar' : 'Subir PDF' }}</ui-button>
-                    <input class="absolute inset-0 cursor-pointer opacity-0" type="file" accept="application/pdf" [attr.aria-label]="course.syllabus === 'PUBLISHED' ? 'Reemplazar PDF' : 'Subir PDF'" (change)="upload(course, $event)" />
-                  </label>
+                  <ui-button variant="soft" type="button" (click)="toggleSyllabus(course.id)">{{ course.syllabus === 'PUBLISHED' ? 'Reemplazar' : 'Subir PDF' }}</ui-button>
                   @if (course.syllabus === 'PUBLISHED') { <ui-button variant="secondary" (click)="askRemoveSyllabus(course)">Quitar PDF</ui-button> }
                   <ui-button variant="secondary" (click)="editCourse(cycle.id, course)">Editar</ui-button>
                   <ui-button variant="secondary" (click)="askRemoveCourse(course)">Eliminar</ui-button>
                 }
               </div>
             </article>
+            @if (syllabusCourseId() === course.id) {
+              <ui-dropzone class="mb-3" [id]="'syllabus-' + course.id" label="Sílabo" hint="Suelta un PDF de hasta 8 MB." accept="application/pdf,.pdf" [multiple]="false" [maxFiles]="1" [disabled]="busy()" [files]="syllabusFiles()" (filesChange)="onSyllabusFiles(course, $event)" />
+            }
           } @empty { <p class="text-sm text-[#7c8691]">Este ciclo no tiene cursos.</p> }
         </ui-card>
       } @empty { <ui-card><p>Este plan todavía no tiene ciclos.</p></ui-card> }
@@ -88,10 +88,10 @@
       <ui-card [heading]="course().id ? 'Editar curso' : 'Nuevo curso'">
         <h2 id="course-title" class="sr-only">{{ course().id ? 'Editar curso' : 'Nuevo curso' }}</h2>
         <div class="grid gap-3 sm:grid-cols-2">
-          <ui-field id="course-position" label="Orden" [value]="course().position" (valueChange)="patchCourse('position', $event)" />
-          <ui-field id="course-code" label="Código" [value]="course().code" (valueChange)="patchCourse('code', $event)" />
-          <div class="sm:col-span-2"><ui-field id="course-name" label="Curso" [value]="course().name" (valueChange)="patchCourse('name', $event)" /></div>
-          <ui-field id="course-credits" label="Créditos" [value]="course().credits" (valueChange)="patchCourse('credits', $event)" />
+          <ui-field id="course-position" label="Orden" [required]="true" [error]="courseErrors().position" [value]="course().position" (valueChange)="patchCourse('position', $event)" />
+          <ui-field id="course-code" label="Código" [required]="true" [error]="courseErrors().code" [value]="course().code" (valueChange)="patchCourse('code', $event)" />
+          <div class="sm:col-span-2"><ui-field id="course-name" label="Curso" [required]="true" [error]="courseErrors().name" [value]="course().name" (valueChange)="patchCourse('name', $event)" /></div>
+          <ui-field id="course-credits" label="Créditos" [required]="true" [error]="courseErrors().credits" [value]="course().credits" (valueChange)="patchCourse('credits', $event)" />
         </div>
         <div class="mt-5 flex gap-3">
           <ui-button [pill]="true" type="submit">Guardar</ui-button>

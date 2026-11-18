@@ -10,7 +10,9 @@ import { UiConfirmComponent } from '../../shared/ui/confirm/ui-confirm.component
 import { UiFieldComponent } from '../../shared/ui/field/ui-field.component';
 import { UiFilterBarComponent } from '../../shared/ui/filter-bar/ui-filter-bar.component';
 import { UiPageHeaderComponent, type UiBreadcrumbItem } from '../../shared/ui/page-header/ui-page-header.component';
+import { UiDropzoneComponent } from '../../shared/ui/dropzone/ui-dropzone.component';
 import { UiSelectComponent, type UiSelectOption } from '../../shared/ui/select/ui-select.component';
+import { courseFieldErrors, cycleError, emptyCourseErrors, hasCourseErrors, pdfBytesError, type CourseFieldErrors } from './plan-form';
 
 interface Named { readonly id: string; readonly code: string; readonly name: string; }
 interface Career extends Named { readonly areaId: string; }
@@ -29,7 +31,7 @@ interface PendingConfirm { readonly title: string; readonly message: string; rea
 
 @Component({
   selector: 'app-plans',
-  imports: [UiAlertComponent, UiBadgeComponent, UiButtonComponent, UiCardComponent, UiConfirmComponent, UiFieldComponent, UiFilterBarComponent, UiPageHeaderComponent, UiSelectComponent],
+  imports: [UiAlertComponent, UiBadgeComponent, UiButtonComponent, UiCardComponent, UiConfirmComponent, UiDropzoneComponent, UiFieldComponent, UiFilterBarComponent, UiPageHeaderComponent, UiSelectComponent],
   templateUrl: './plans.page.html',
 })
 export class PlansPage {
@@ -46,6 +48,10 @@ export class PlansPage {
   readonly busy = signal(false);
   readonly year = signal('');
   readonly cycleNumber = signal('1');
+  readonly cycleFieldError = signal('');
+  readonly courseErrors = signal<CourseFieldErrors>(emptyCourseErrors());
+  readonly syllabusCourseId = signal('');
+  readonly syllabusFiles = signal<readonly File[]>([]);
   readonly course = signal({ id: '', cycleId: '', position: '1', code: '', name: '', credits: '3' });
   readonly courseOpen = signal(false);
   readonly pdfTitle = signal('');
@@ -138,10 +144,13 @@ export class PlansPage {
 
   async addCycle(): Promise<void> {
     const mesh = this.mesh();
-    const number = Number(this.cycleNumber());
-    if (!mesh || !Number.isInteger(number)) return;
+    const error = cycleError(this.cycleNumber(), mesh?.cycles.map((cycle) => cycle.number) ?? []);
+    this.cycleFieldError.set(error);
+    if (!mesh || error) return;
+    const number = Number(this.cycleNumber().trim());
     await this.run(async () => {
       await this.api.send('POST', `/curricula/${mesh.id}/cycles`, { number });
+      this.cycleNumber.set('');
       await this.openPlan(mesh.id);
     });
   }
@@ -160,26 +169,32 @@ export class PlansPage {
   }
 
   editCourse(cycleId: string, current?: CourseRow): void {
+    this.courseErrors.set(emptyCourseErrors());
     this.course.set(current
       ? { id: current.id, cycleId, position: String(current.position), code: current.code, name: current.name, credits: String(current.credits) }
-      : { id: '', cycleId, position: '1', code: '', name: '', credits: '3' });
+      : { id: '', cycleId, position: '', code: '', name: '', credits: '' });
     this.courseOpen.set(true);
   }
 
   patchCourse(key: 'position' | 'code' | 'name' | 'credits', value: string): void {
     const next = key === 'code' ? value.toUpperCase() : value;
     this.course.update((current) => ({ ...current, [key]: next }));
+    this.courseErrors.update((current) => ({ ...current, [key]: '' }));
   }
 
   async saveCourse(): Promise<void> {
     const mesh = this.mesh();
     const draft = this.course();
-    const credits = Number(draft.credits);
-    if (!mesh || !/^[A-Z]{2}\d{3}$/.test(draft.code.trim()) || draft.name.trim().length < 3 || !Number.isFinite(credits)) {
-      this.notice.set('Revisa código (EG101), nombre y créditos.');
-      return;
-    }
-    const body = { position: Number(draft.position), code: draft.code.trim(), name: draft.name.trim(), credits };
+    const courses = (mesh?.cycles ?? []).flatMap((cycle) => cycle.courses.map((course) => ({
+      id: course.id,
+      cycleId: cycle.id,
+      position: course.position,
+      code: course.code,
+    })));
+    const errors = courseFieldErrors(draft, courses);
+    this.courseErrors.set(errors);
+    if (!mesh || hasCourseErrors(errors)) return;
+    const body = { position: Number(draft.position), code: draft.code.trim(), name: draft.name.trim(), credits: Number(draft.credits) };
     await this.run(async () => {
       if (draft.id) await this.api.send('PATCH', `/courses/${draft.id}`, body);
       else await this.api.send('POST', `/cycles/${draft.cycleId}/courses`, body);
@@ -201,17 +216,28 @@ export class PlansPage {
     });
   }
 
-  async upload(course: CourseRow, event: Event): Promise<void> {
-    const input = event.target;
-    const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
-    if (input instanceof HTMLInputElement) input.value = '';
+  toggleSyllabus(courseId: string): void {
+    this.notice.set('');
+    this.syllabusFiles.set([]);
+    this.syllabusCourseId.update((current) => current === courseId ? '' : courseId);
+  }
+
+  async onSyllabusFiles(course: CourseRow, files: readonly File[]): Promise<void> {
+    this.syllabusFiles.set(files);
+    const file = files[0];
     const mesh = this.mesh();
     if (!file || !mesh) return;
-    if (file.type !== 'application/pdf' || file.size > 8_000_000) { this.notice.set('El archivo debe ser un PDF de hasta 8 MB.'); return; }
     const bytes = new Uint8Array(await file.arrayBuffer());
-    if (bytes[0] !== 0x25 || bytes[1] !== 0x50) { this.notice.set('El archivo no es un PDF.'); return; }
+    const error = pdfBytesError(file.size, bytes.subarray(0, 5));
+    if (error) {
+      this.notice.set(error);
+      this.syllabusFiles.set([]);
+      return;
+    }
     await this.run(async () => {
       await this.api.send('POST', `/courses/${course.id}/syllabus`, { contentBase64: toBase64(bytes) });
+      this.syllabusFiles.set([]);
+      this.syllabusCourseId.set('');
       await this.openPlan(mesh.id);
     });
   }

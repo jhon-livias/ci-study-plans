@@ -1,0 +1,29 @@
+<div class="dropzone">
+  <p class="dropzone__label" [id]="id() + '-label'">{{ label() }}</p>
+  <div
+    class="dropzone__target"
+    [class.dropzone__target--active]="dragging()"
+    role="group"
+    [attr.aria-labelledby]="id() + '-label'"
+    (dragover)="dragOver($event)"
+    (dragleave)="dragging.set(false)"
+    (drop)="drop($event)"
+  >
+    <p>{{ hint() }} Máximo {{ maxFiles() }} archivos.</p>
+    <ui-button type="button" variant="secondary" [disabled]="disabled() || files().length >= maxFiles()" (click)="picker.click()">Subir archivos</ui-button>
+    <input #picker class="dropzone__input" [id]="id()" type="file" [accept]="accept()" [multiple]="multiple()" [disabled]="disabled()" (change)="pick($event)" />
+  </div>
+  @if (notice()) {
+    <p class="dropzone__notice" role="alert">{{ notice() }}</p>
+  }
+  @if (files().length) {
+    <ul class="dropzone__list">
+      @for (file of files(); track file.name + file.size; let index = $index) {
+        <li>
+          <span>{{ file.name }}</span>
+          <button type="button" (click)="remove(index)">Quitar</button>
+        </li>
+      }
+    </ul>
+  }
+</div>
