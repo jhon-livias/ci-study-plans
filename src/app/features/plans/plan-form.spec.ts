@@ -1,10 +1,17 @@
-import { courseFieldErrors, cycleError, emptyCourseErrors, hasCourseErrors, pdfBytesError, type PlanCourseRef } from './plan-form';
+import { courseFieldErrors, cycleError, emptyCourseErrors, hasCourseErrors, pdfBytesError, planYearError, type PlanCourseRef } from './plan-form';
 
 const courses: readonly PlanCourseRef[] = [
   { id: 'a', cycleId: 'c1', position: 1, code: 'EG101' },
 ];
 
 describe('validación de la malla', () => {
+  it('exige una vigencia de cuatro dígitos y rechaza la repetida', () => {
+    expect(planYearError(' ', [])).toBe('La vigencia es obligatoria.');
+    expect(planYearError('24', [])).toContain('2024');
+    expect(planYearError('2024', ['2024'])).toBe('Ya existe un plan para esa vigencia.');
+    expect(planYearError('2025', ['2024'])).toBe('');
+  });
+
   it('exige el ciclo y rechaza uno repetido', () => {
     expect(cycleError('  ', [1])).toBe('El ciclo es obligatorio.');
     expect(cycleError('0', [])).toContain('1 al 20');

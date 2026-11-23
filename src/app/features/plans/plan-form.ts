@@ -22,6 +22,15 @@ export interface CourseFieldErrors {
 }
 
 const COURSE_CODE = /^(?=.*[A-Z])[A-Z0-9-]{2,16}$/u;
+const PLAN_YEAR = /^20\d{2}$/u;
+
+export const planYearError = (value: string, years: readonly string[]): string => {
+  const year = value.trim();
+  if (!year) return 'La vigencia es obligatoria.';
+  if (!PLAN_YEAR.test(year)) return 'La vigencia es un año, por ejemplo 2024.';
+  if (years.includes(year)) return 'Ya existe un plan para esa vigencia.';
+  return '';
+};
 
 export const emptyCourseErrors = (): CourseFieldErrors => ({ position: '', code: '', name: '', credits: '' });
 

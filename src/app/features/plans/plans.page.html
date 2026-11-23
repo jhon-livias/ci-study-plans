@@ -17,6 +17,12 @@
   @if (!mesh()) {
     <ui-page-header [items]="crumbs()" [title]="auth.faculty() ? 'Planes de estudio' : 'Plan vigente'">
       <ui-select id="year" label="Vigencia" [options]="yearOptions()" [value]="year()" [disabled]="yearOptions().length === 0" placeholder="Sin vigencias" (valueChange)="year.set($event)" />
+      @if (auth.faculty()) {
+        <form class="flex items-end gap-2" (submit)="$event.preventDefault(); addPlan()">
+          <ui-field id="new-year" label="Nueva vigencia" [required]="true" [error]="yearError()" [value]="newYear()" (valueChange)="newYear.set($event); yearError.set('')" />
+          <ui-button [pill]="true" type="submit" [disabled]="busy() || !careerId()">Crear plan</ui-button>
+        </form>
+      }
     </ui-page-header>
     <div class="mt-4 grid gap-3">
       @for (plan of visiblePlans(); track plan.id) {
@@ -26,7 +32,7 @@
             <div class="flex flex-wrap gap-2">
               <ui-button variant="secondary" (click)="openPlan(plan.id)">Ver cursos</ui-button>
               @if (auth.faculty()) {
-                <ui-button [disabled]="busy()" (click)="setStatus(plan, plan.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')">{{ plan.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</ui-button>
+                <ui-button [disabled]="busy()" (click)="askSetStatus(plan)">{{ plan.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</ui-button>
               }
             </div>
           </div>
@@ -45,7 +51,7 @@
       }
     </ui-page-header>
     <div class="mt-4 grid gap-4">
-      @for (cycle of mesh()?.cycles ?? []; track cycle.id) {
+      @for (cycle of visibleCycles(); track cycle.id) {
         <ui-card [heading]="'Ciclo ' + cycle.number">
           @if (auth.faculty()) {
             <div class="mb-3 flex flex-wrap gap-2">
@@ -77,7 +83,7 @@
             }
           } @empty { <p class="text-sm text-[#7c8691]">Este ciclo no tiene cursos.</p> }
         </ui-card>
-      } @empty { <ui-card><p>Este plan todavía no tiene ciclos.</p></ui-card> }
+      } @empty { <ui-card><p>{{ auth.faculty() ? 'Este plan todavía no tiene ciclos.' : 'Este plan no tiene sílabos publicados.' }}</p></ui-card> }
     </div>
   }
 }
@@ -103,7 +109,7 @@
 }
 
 @if (pendingConfirm(); as confirm) {
-  <ui-confirm [title]="confirm.title" [message]="confirm.message" (confirmed)="acceptConfirm()" (cancelled)="pendingConfirm.set(null)" />
+  <ui-confirm [title]="confirm.title" [message]="confirm.message" (confirmed)="acceptConfirm()" (cancelled)="cancelConfirm()" />
 }
 
 <section class="mt-6" [hidden]="!pdfTitle()" aria-labelledby="pdf-title">

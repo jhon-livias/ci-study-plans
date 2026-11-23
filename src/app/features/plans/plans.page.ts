@@ -12,7 +12,7 @@ import { UiFilterBarComponent } from '../../shared/ui/filter-bar/ui-filter-bar.c
 import { UiPageHeaderComponent, type UiBreadcrumbItem } from '../../shared/ui/page-header/ui-page-header.component';
 import { UiDropzoneComponent } from '../../shared/ui/dropzone/ui-dropzone.component';
 import { UiSelectComponent, type UiSelectOption } from '../../shared/ui/select/ui-select.component';
-import { courseFieldErrors, cycleError, emptyCourseErrors, hasCourseErrors, pdfBytesError, type CourseFieldErrors } from './plan-form';
+import { courseFieldErrors, cycleError, emptyCourseErrors, hasCourseErrors, pdfBytesError, planYearError, type CourseFieldErrors } from './plan-form';
 
 interface Named { readonly id: string; readonly code: string; readonly name: string; }
 interface Career extends Named { readonly areaId: string; }
@@ -47,6 +47,8 @@ export class PlansPage {
   readonly notice = signal('');
   readonly busy = signal(false);
   readonly year = signal('');
+  readonly newYear = signal('');
+  readonly yearError = signal('');
   readonly cycleNumber = signal('1');
   readonly cycleFieldError = signal('');
   readonly courseErrors = signal<CourseFieldErrors>(emptyCourseErrors());
@@ -66,6 +68,13 @@ export class PlansPage {
     .sort((left, right) => right.year.localeCompare(left.year))
     .map((plan) => ({ value: plan.year, label: plan.year })));
   readonly visiblePlans = computed(() => this.plans().filter((plan) => plan.year === this.year()));
+  readonly visibleCycles = computed(() => {
+    const cycles = this.mesh()?.cycles ?? [];
+    if (this.auth.faculty()) return cycles;
+    return cycles
+      .map((cycle) => ({ ...cycle, courses: cycle.courses.filter((course) => course.syllabus === 'PUBLISHED') }))
+      .filter((cycle) => cycle.courses.length > 0);
+  });
   readonly crumbs = computed((): readonly UiBreadcrumbItem[] => this.mesh()
     ? [{ label: 'Planes', action: 'plans' }, { label: this.mesh()?.year ?? '' }]
     : [{ label: 'Planes de estudio' }]);
@@ -134,11 +143,31 @@ export class PlansPage {
     this.mesh.set(await this.api.get<Mesh>(`/curricula/${id}`));
   }
 
-  async setStatus(plan: PlanRow, status: 'ACTIVE' | 'INACTIVE'): Promise<void> {
+  async addPlan(): Promise<void> {
+    const year = this.newYear().trim();
+    const error = planYearError(year, this.plans().map((plan) => plan.year));
+    this.yearError.set(error);
+    if (error || !this.careerId() || !this.modalityId()) return;
     await this.run(async () => {
-      await this.api.send('POST', `/curricula/${plan.id}/${status === 'ACTIVE' ? 'activate' : 'deactivate'}`);
+      await this.api.send('POST', '/curricula', { careerId: this.careerId(), modalityId: this.modalityId(), year });
+      this.newYear.set('');
+      this.year.set(year);
       await this.loadPlans();
-      if (this.mesh()?.id === plan.id) await this.openPlan(plan.id);
+    });
+  }
+
+  askSetStatus(plan: PlanRow): void {
+    const activate = plan.status !== 'ACTIVE';
+    this.pendingConfirm.set({
+      title: activate ? 'Activar plan' : 'Desactivar plan',
+      message: activate
+        ? `¿Activar el plan ${plan.year}? Si hay otro plan activo de esta carrera y modalidad, pasará a inactivo.`
+        : `¿Desactivar el plan ${plan.year}? El docente dejará de verlo.`,
+      run: async () => {
+        await this.api.send('POST', `/curricula/${plan.id}/${activate ? 'activate' : 'deactivate'}`);
+        await this.loadPlans();
+        if (this.mesh()?.id === plan.id) await this.openPlan(plan.id);
+      },
     });
   }
 
@@ -234,12 +263,21 @@ export class PlansPage {
       this.syllabusFiles.set([]);
       return;
     }
-    await this.run(async () => {
+    const upload = async (): Promise<void> => {
       await this.api.send('POST', `/courses/${course.id}/syllabus`, { contentBase64: toBase64(bytes) });
       this.syllabusFiles.set([]);
       this.syllabusCourseId.set('');
       await this.openPlan(mesh.id);
-    });
+    };
+    if (course.syllabus === 'PUBLISHED') {
+      this.pendingConfirm.set({
+        title: 'Reemplazar sílabo',
+        message: `¿Reemplazar el sílabo de ${course.code}? La versión anterior se conserva.`,
+        run: upload,
+      });
+      return;
+    }
+    await this.run(upload);
   }
 
   askRemoveSyllabus(course: CourseRow): void {
@@ -253,6 +291,11 @@ export class PlansPage {
         await this.openPlan(mesh.id);
       },
     });
+  }
+
+  cancelConfirm(): void {
+    this.pendingConfirm.set(null);
+    this.syllabusFiles.set([]);
   }
 
   async acceptConfirm(): Promise<void> {
