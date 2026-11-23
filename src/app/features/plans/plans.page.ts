@@ -58,7 +58,10 @@ export class PlansPage {
   readonly courseOpen = signal(false);
   readonly pdfTitle = signal('');
   readonly pendingConfirm = signal<PendingConfirm | null>(null);
-  readonly modalityOptions = computed((): readonly UiSelectOption[] => this.catalog().modalities.map((item) => ({ value: item.id, label: item.name })));
+  readonly modalityOptions = computed((): readonly UiSelectOption[] => {
+    const available = new Set(this.catalog().offerings.map((item) => item.modalityId));
+    return this.catalog().modalities.filter((item) => available.has(item.id)).map((item) => ({ value: item.id, label: item.name }));
+  });
   readonly areaOptions = computed((): readonly UiSelectOption[] => {
     const areaIds = new Set(this.careersForModality().map((career) => career.areaId));
     return this.catalog().areas.filter((area) => areaIds.has(area.id)).map((item) => ({ value: item.id, label: item.name }));
@@ -79,7 +82,7 @@ export class PlansPage {
     try {
       const catalog = await this.api.get<Catalog>('/catalog');
       this.catalog.set(catalog);
-      this.modalityId.set(catalog.modalities[0]?.id ?? '');
+      this.modalityId.set(this.modalityOptions()[0]?.value ?? '');
       this.keepValidSelection();
       if (this.careerId()) await this.loadPlans();
     } catch (error) {
@@ -97,6 +100,8 @@ export class PlansPage {
   }
 
   private keepValidSelection(): void {
+    const modalities = this.modalityOptions();
+    if (!modalities.some((item) => item.value === this.modalityId())) this.modalityId.set(modalities[0]?.value ?? '');
     const areas = this.areaOptions();
     if (!areas.some((area) => area.value === this.areaId())) this.areaId.set(areas[0]?.value ?? '');
     const careers = this.careers();
