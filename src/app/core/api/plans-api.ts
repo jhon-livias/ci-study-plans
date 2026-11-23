@@ -8,11 +8,11 @@ export class PlansApi {
 
   get<T>(path: string): Promise<T> { return this.send<T>('GET', path); }
 
-  async send<T>(method: string, path: string, body?: unknown): Promise<T> {
+  async send<T>(method: string, path: string, body?: unknown, extra?: Record<string, string>): Promise<T> {
     const response = await fetch(`/api/v1/study-plans${path}`, {
       method,
       credentials: 'include',
-      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...this.auth.csrfHeaders() },
+      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...extra, ...this.auth.csrfHeaders() },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (response.status === 401) {

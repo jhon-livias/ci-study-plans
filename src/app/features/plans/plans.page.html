@@ -145,7 +145,7 @@
 }
 
 @if (pendingConfirm(); as confirm) {
-  <ui-confirm [title]="confirm.title" [message]="confirm.message" (confirmed)="acceptConfirm()" (cancelled)="cancelConfirm()" />
+  <ui-confirm [title]="confirm.title" [message]="confirm.message" [confirmLabel]="confirm.confirmLabel ?? 'Confirmar'" [totp]="confirm.totp === true" [totpError]="confirmError()" [(code)]="confirmCode" (confirmed)="acceptConfirm()" (cancelled)="cancelConfirm()" />
 }
 
 <section class="mt-6" [hidden]="!pdfTitle()" aria-labelledby="pdf-title">

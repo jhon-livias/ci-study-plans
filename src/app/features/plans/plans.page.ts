@@ -27,7 +27,13 @@ interface Mesh {
   readonly id: string; readonly year: string; readonly status: 'ACTIVE' | 'INACTIVE';
   readonly career: Named; readonly modality: Named; readonly cycles: readonly CycleRow[];
 }
-interface PendingConfirm { readonly title: string; readonly message: string; readonly run: () => Promise<void>; }
+interface PendingConfirm {
+  readonly title: string;
+  readonly message: string;
+  readonly totp?: boolean;
+  readonly confirmLabel?: string;
+  readonly run: (code: string) => Promise<void>;
+}
 
 @Component({
   selector: 'app-plans',
@@ -58,6 +64,8 @@ export class PlansPage {
   readonly courseOpen = signal(false);
   readonly pdfTitle = signal('');
   readonly pendingConfirm = signal<PendingConfirm | null>(null);
+  readonly confirmCode = signal('');
+  readonly confirmError = signal('');
   readonly modalityOptions = computed((): readonly UiSelectOption[] => {
     const available = new Set(this.catalog().offerings.map((item) => item.modalityId));
     return this.catalog().modalities.filter((item) => available.has(item.id)).map((item) => ({ value: item.id, label: item.name }));
@@ -192,11 +200,13 @@ export class PlansPage {
   askRemoveCycle(cycle: CycleRow): void {
     const mesh = this.mesh();
     if (!mesh) return;
-    this.pendingConfirm.set({
+    this.openConfirm({
       title: 'Quitar ciclo',
       message: `¿Eliminar el ciclo ${cycle.number}?`,
-      run: async () => {
-        await this.api.send('DELETE', `/cycles/${cycle.id}`);
+      totp: true,
+      confirmLabel: 'Eliminar',
+      run: async (code) => {
+        await this.api.send('DELETE', `/cycles/${cycle.id}`, undefined, { 'x-totp-code': code });
         await this.openPlan(mesh.id);
       },
     });
@@ -240,11 +250,13 @@ export class PlansPage {
   askRemoveCourse(course: CourseRow): void {
     const mesh = this.mesh();
     if (!mesh) return;
-    this.pendingConfirm.set({
+    this.openConfirm({
       title: 'Eliminar curso',
-      message: `¿Eliminar ${course.code}?`,
-      run: async () => {
-        await this.api.send('DELETE', `/courses/${course.id}`);
+      message: `¿Eliminar ${course.code}? Ingresa el código de tu autenticador para confirmar que eres tú.`,
+      totp: true,
+      confirmLabel: 'Eliminar',
+      run: async (code) => {
+        await this.api.send('DELETE', `/courses/${course.id}`, undefined, { 'x-totp-code': code });
         await this.openPlan(mesh.id);
       },
     });
@@ -288,11 +300,13 @@ export class PlansPage {
   askRemoveSyllabus(course: CourseRow): void {
     const mesh = this.mesh();
     if (!mesh) return;
-    this.pendingConfirm.set({
+    this.openConfirm({
       title: 'Retirar sílabo',
-      message: '¿Retirar el sílabo publicado?',
-      run: async () => {
-        await this.api.send('DELETE', `/courses/${course.id}/syllabus`);
+      message: '¿Retirar el sílabo publicado? Ingresa el código de tu autenticador para confirmar que eres tú.',
+      totp: true,
+      confirmLabel: 'Eliminar',
+      run: async (code) => {
+        await this.api.send('DELETE', `/courses/${course.id}/syllabus`, undefined, { 'x-totp-code': code });
         await this.openPlan(mesh.id);
       },
     });
@@ -300,14 +314,37 @@ export class PlansPage {
 
   cancelConfirm(): void {
     this.pendingConfirm.set(null);
+    this.confirmCode.set('');
+    this.confirmError.set('');
     this.syllabusFiles.set([]);
   }
 
   async acceptConfirm(): Promise<void> {
     const current = this.pendingConfirm();
-    this.pendingConfirm.set(null);
-    if (!current) return;
-    await this.run(current.run);
+    if (!current || this.busy()) return;
+    const code = this.confirmCode().trim();
+    if (current.totp && !/^\d{6}$/.test(code)) {
+      this.confirmError.set('Ingresa el código de 6 dígitos de tu autenticador.');
+      return;
+    }
+    this.busy.set(true);
+    this.confirmError.set('');
+    try {
+      await current.run(code);
+      this.pendingConfirm.set(null);
+      this.confirmCode.set('');
+      this.notice.set('');
+    } catch (error) {
+      this.confirmError.set(error instanceof Error ? error.message : 'No se pudo completar la operación.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private openConfirm(confirm: PendingConfirm): void {
+    this.confirmCode.set('');
+    this.confirmError.set('');
+    this.pendingConfirm.set(confirm);
   }
 
   async viewSyllabus(course: CourseRow): Promise<void> {

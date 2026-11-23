@@ -1,4 +1,6 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, model, output } from '@angular/core';
+
+import { UiFieldComponent } from '../field/ui-field.component';
 
 export interface UiConfirmDetail {
   readonly label: string;
@@ -7,6 +9,7 @@ export interface UiConfirmDetail {
 
 @Component({
   selector: 'ui-confirm',
+  imports: [UiFieldComponent],
   templateUrl: './ui-confirm.component.html',
   styleUrl: './ui-confirm.component.css',
   host: {
@@ -23,6 +26,9 @@ export class UiConfirmComponent {
   readonly details = input<readonly UiConfirmDetail[]>([]);
   readonly confirmLabel = input('Confirmar');
   readonly cancelLabel = input('Cancelar');
+  readonly totp = input(false);
+  readonly totpError = input('');
+  readonly code = model('');
   readonly confirmed = output<void>();
   readonly cancelled = output<void>();
 

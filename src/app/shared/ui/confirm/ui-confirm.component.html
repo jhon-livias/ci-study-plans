@@ -3,6 +3,11 @@
   <section class="confirm__card">
     <h2 class="confirm__title" id="ui-confirm-title">{{ title() }}</h2>
     <p class="confirm__message">{{ message() }}</p>
+    @if (totp()) {
+      <div class="confirm__totp">
+        <ui-field id="confirm-totp" label="Código del autenticador" type="text" autocomplete="one-time-code" placeholder="000000" [required]="true" [error]="totpError()" [value]="code()" (valueChange)="code.set($event)" />
+      </div>
+    }
     @if (details().length > 0) {
       <ul class="confirm__details">
         @for (item of details(); track item.label) {

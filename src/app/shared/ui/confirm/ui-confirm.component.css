@@ -70,6 +70,11 @@
   margin-top: 0.35rem;
 }
 
+.confirm__totp {
+  margin: 1.15rem 1.5rem 0.25rem;
+  text-align: left;
+}
+
 .confirm__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
