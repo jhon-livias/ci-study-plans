@@ -16,7 +16,6 @@
 
   @if (!mesh()) {
     <ui-page-header [items]="crumbs()" [title]="auth.faculty() ? 'Planes de estudio' : 'Plan vigente'">
-      <ui-select id="year" label="Vigencia" [options]="yearOptions()" [value]="year()" [disabled]="yearOptions().length === 0" placeholder="Sin vigencias" (valueChange)="year.set($event)" />
       @if (auth.faculty()) {
         <form class="flex items-end gap-2" (submit)="$event.preventDefault(); addPlan()">
           <ui-field id="new-year" label="Nueva vigencia" [required]="true" [error]="yearError()" [value]="newYear()" (valueChange)="newYear.set($event); yearError.set('')" />
@@ -24,22 +23,34 @@
         </form>
       }
     </ui-page-header>
-    <div class="mt-4 grid gap-3">
-      @for (plan of visiblePlans(); track plan.id) {
-        <ui-card [heading]="plan.year">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <ui-badge [tone]="plan.status === 'ACTIVE' ? 'primary' : 'neutral'">{{ plan.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}</ui-badge>
-            <div class="flex flex-wrap gap-2">
-              <ui-button variant="secondary" (click)="openPlan(plan.id)">Ver cursos</ui-button>
-              @if (auth.faculty()) {
-                <ui-button [disabled]="busy()" (click)="askSetStatus(plan)">{{ plan.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</ui-button>
-              }
-            </div>
-          </div>
-        </ui-card>
-      } @empty {
-        <ui-card><p>No hay planes para este filtro.</p></ui-card>
-      }
+    <div class="mt-4 overflow-x-auto rounded-xl border border-[#ead7d8] bg-white">
+      <table class="w-full min-w-[640px] text-sm">
+        <thead class="bg-[#faf6f6] text-xs uppercase tracking-wide text-[#7c8691]">
+          <tr>
+            <th class="px-4 py-3 text-left font-semibold" scope="col">Currícula</th>
+            <th class="px-4 py-3 text-left font-semibold" scope="col">Estado</th>
+            <th class="px-4 py-3 text-right font-semibold" scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (plan of plans(); track plan.id) {
+            <tr class="border-t border-[#ead7d8]">
+              <td class="px-4 py-3 font-semibold text-[#2b2118]">{{ plan.year }}</td>
+              <td class="px-4 py-3"><ui-badge [tone]="plan.status === 'ACTIVE' ? 'primary' : 'neutral'">{{ plan.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}</ui-badge></td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <ui-button variant="secondary" (click)="openPlan(plan.id)">Ver cursos</ui-button>
+                  @if (auth.faculty()) {
+                    <ui-button [disabled]="busy()" (click)="askSetStatus(plan)">{{ plan.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</ui-button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td class="px-4 py-6 text-[#7c8691]" colspan="3">No hay planes para este filtro.</td></tr>
+          }
+        </tbody>
+      </table>
     </div>
   } @else {
     <ui-page-header [items]="crumbs()" [title]="(mesh()?.career?.name ?? '') + ' · ' + (mesh()?.year ?? '')" [description]="(mesh()?.modality?.name ?? '') + ' · ' + (mesh()?.status === 'ACTIVE' ? 'Activo' : 'Inactivo')" (activate)="onCrumb($event)">
@@ -59,29 +70,54 @@
               <ui-button variant="secondary" (click)="askRemoveCycle(cycle)">Quitar ciclo</ui-button>
             </div>
           }
-          @for (course of cycle.courses; track course.id) {
-            <article class="flex flex-wrap items-center justify-between gap-3 border-t border-[#dfd6d6] py-3">
-              <div>
-                <p class="font-semibold">{{ course.position }}. {{ course.code }} · {{ course.name }}</p>
-                <p class="text-sm text-[#7c8691]">{{ course.credits }} créditos · {{ course.syllabus === 'PUBLISHED' ? 'Subido' : 'Pendiente' }}</p>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                @if (course.syllabus === 'PUBLISHED') {
-                  <ui-button variant="secondary" (click)="viewSyllabus(course)">Ver sílabo</ui-button>
-                  <ui-button variant="secondary" (click)="download(course)">Descargar</ui-button>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[760px] text-sm">
+              <thead class="bg-[#faf6f6] text-xs uppercase tracking-wide text-[#7c8691]">
+                <tr>
+                  <th class="px-3 py-2 text-center font-semibold" scope="col">Ord</th>
+                  <th class="px-3 py-2 text-left font-semibold" scope="col">Código</th>
+                  <th class="px-3 py-2 text-left font-semibold" scope="col">Curso</th>
+                  <th class="px-3 py-2 text-center font-semibold" scope="col">Créd</th>
+                  <th class="px-3 py-2 text-center font-semibold" scope="col">Estado</th>
+                  <th class="px-3 py-2 text-right font-semibold" scope="col">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (course of cycle.courses; track course.id) {
+                  <tr class="border-t border-[#ead7d8]">
+                    <td class="px-3 py-3 text-center text-[#7c8691]">{{ course.position }}</td>
+                    <td class="px-3 py-3 font-semibold text-[#2b2118]">{{ course.code }}</td>
+                    <td class="px-3 py-3 text-[#2b2118]">{{ course.name }}</td>
+                    <td class="px-3 py-3 text-center">{{ creditsLabel(course.credits) }}</td>
+                    <td class="px-3 py-3 text-center"><ui-badge [tone]="course.syllabus === 'PUBLISHED' ? 'primary' : 'neutral'">{{ course.syllabus === 'PUBLISHED' ? 'Subido' : 'Pendiente' }}</ui-badge></td>
+                    <td class="px-3 py-3">
+                      <div class="flex flex-wrap justify-end gap-2">
+                        @if (course.syllabus === 'PUBLISHED') {
+                          <ui-button variant="secondary" (click)="viewSyllabus(course)">Ver sílabo</ui-button>
+                          <ui-button variant="secondary" (click)="download(course)">Descargar</ui-button>
+                        }
+                        @if (auth.faculty()) {
+                          <ui-button variant="soft" type="button" (click)="toggleSyllabus(course.id)">{{ course.syllabus === 'PUBLISHED' ? 'Reemplazar' : 'Subir PDF' }}</ui-button>
+                          @if (course.syllabus === 'PUBLISHED') { <ui-button variant="secondary" (click)="askRemoveSyllabus(course)">Quitar PDF</ui-button> }
+                          <ui-button variant="secondary" (click)="editCourse(cycle.id, course)">Editar</ui-button>
+                          <ui-button variant="secondary" (click)="askRemoveCourse(course)">Eliminar</ui-button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                  @if (syllabusCourseId() === course.id) {
+                    <tr class="border-t border-[#ead7d8]">
+                      <td class="px-3 py-3" colspan="6">
+                        <ui-dropzone [id]="'syllabus-' + course.id" label="Sílabo" hint="Suelta un PDF de hasta 8 MB." accept="application/pdf,.pdf" [multiple]="false" [maxFiles]="1" [disabled]="busy()" [files]="syllabusFiles()" (filesChange)="onSyllabusFiles(course, $event)" />
+                      </td>
+                    </tr>
+                  }
+                } @empty {
+                  <tr><td class="px-3 py-4 text-[#7c8691]" colspan="6">Este ciclo no tiene cursos.</td></tr>
                 }
-                @if (auth.faculty()) {
-                  <ui-button variant="soft" type="button" (click)="toggleSyllabus(course.id)">{{ course.syllabus === 'PUBLISHED' ? 'Reemplazar' : 'Subir PDF' }}</ui-button>
-                  @if (course.syllabus === 'PUBLISHED') { <ui-button variant="secondary" (click)="askRemoveSyllabus(course)">Quitar PDF</ui-button> }
-                  <ui-button variant="secondary" (click)="editCourse(cycle.id, course)">Editar</ui-button>
-                  <ui-button variant="secondary" (click)="askRemoveCourse(course)">Eliminar</ui-button>
-                }
-              </div>
-            </article>
-            @if (syllabusCourseId() === course.id) {
-              <ui-dropzone class="mb-3" [id]="'syllabus-' + course.id" label="Sílabo" hint="Suelta un PDF de hasta 8 MB." accept="application/pdf,.pdf" [multiple]="false" [maxFiles]="1" [disabled]="busy()" [files]="syllabusFiles()" (filesChange)="onSyllabusFiles(course, $event)" />
-            }
-          } @empty { <p class="text-sm text-[#7c8691]">Este ciclo no tiene cursos.</p> }
+              </tbody>
+            </table>
+          </div>
         </ui-card>
       } @empty { <ui-card><p>{{ auth.faculty() ? 'Este plan todavía no tiene ciclos.' : 'Este plan no tiene sílabos publicados.' }}</p></ui-card> }
     </div>

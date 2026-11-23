@@ -64,10 +64,6 @@ export class PlansPage {
     return this.catalog().areas.filter((area) => areaIds.has(area.id)).map((item) => ({ value: item.id, label: item.name }));
   });
   readonly careerOptions = computed((): readonly UiSelectOption[] => this.careers().map((item) => ({ value: item.id, label: item.name })));
-  readonly yearOptions = computed((): readonly UiSelectOption[] => [...this.plans()]
-    .sort((left, right) => right.year.localeCompare(left.year))
-    .map((plan) => ({ value: plan.year, label: plan.year })));
-  readonly visiblePlans = computed(() => this.plans().filter((plan) => plan.year === this.year()));
   readonly visibleCycles = computed(() => {
     const cycles = this.mesh()?.cycles ?? [];
     if (this.auth.faculty()) return cycles;
@@ -125,6 +121,10 @@ export class PlansPage {
     this.careerId.set(value);
     this.mesh.set(null);
     await this.loadPlans();
+  }
+
+  creditsLabel(value: number): string {
+    return value.toFixed(1);
   }
 
   onCrumb(action: string): void {
